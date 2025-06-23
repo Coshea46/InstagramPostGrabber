@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Main {
     public static void main(String[] args) throws Exception {
         List<Segment> segments = SegmentLoader.loadSegments("SegmentsWithHotspots.json");
+        Thread.sleep(10000);  // allows 10 seconds to get into position
 
         AtomicReference<ArrayList<SegmentWithTime>> sharedPath = new AtomicReference<>(new ArrayList<>());
         Semaphore pathReady = new Semaphore(0);

@@ -7,14 +7,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class MousePathRunnable implements Runnable {
 
-    public boolean firstThreadIteration = true; // for first time thread is run
-    public List<Segment> segmentList;
-    public final AtomicReference<ArrayList<SegmentWithTime>> mousePathSegments;
-
-
-    // var for storing last segment in thread
-    public AtomicReference<SegmentWithTime> lastSegmentOfPost;
-
+    private final List<Segment> segmentList;
+    private final AtomicReference<ArrayList<SegmentWithTime>> mousePathSegments;
     private final Semaphore pathReady;
     private final Semaphore played;
 
@@ -32,35 +26,46 @@ public class MousePathRunnable implements Runnable {
 
     @Override
     public void run() {
+        Segment prevSegment = null;
+        boolean firstIteration = true;
+
         while (true) {
             try {
-                played.acquire(); // wait until player is done
+                played.acquire();  // wait for player to finish last iteration
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                break;
             }
 
-            // Generate path
-            if (firstThreadIteration) {
-                mousePathSegments.set(veryFirstPost(segmentList));
-                firstThreadIteration = false;
+            ArrayList<SegmentWithTime> newPath;
+            if (firstIteration) {
+                newPath = veryFirstPost(segmentList);
+                firstIteration = false;
             } else {
-                mousePathSegments.set(
-                        QueueSegments.queuePost(mousePathSegments.get().getLast().segment, segmentList)
-                );
+                // generate next path based on endpoint of previous path
+                newPath = QueueSegments.queuePost(prevSegment, segmentList);
             }
 
-            pathReady.release(); // let PlayerRunnable go
+            mousePathSegments.set(newPath);
+
+            // update prevSegment for next iteration
+            if (!newPath.isEmpty()) {
+                prevSegment = newPath.get(newPath.size() - 1).segment;
+            }
+
+            pathReady.release();  // signal player to start
         }
     }
 
-    private static ArrayList<SegmentWithTime> veryFirstPost(List<Segment> segmentList){
-        ArrayList<SegmentWithTime> segmentPath = new ArrayList<SegmentWithTime>();
-        segmentPath.add(QueueSegments.queueVeryFirstSegmentInProgram(segmentList));
+    private static ArrayList<SegmentWithTime> veryFirstPost(List<Segment> segmentList) {
+        ArrayList<SegmentWithTime> segmentPath = new ArrayList<>();
+        // first segment
+        SegmentWithTime first = QueueSegments.queueVeryFirstSegmentInProgram(segmentList);
+        segmentPath.add(first);
 
-        // add rest of segments for post
-        ArrayList<SegmentWithTime> restOfSegmentsInPath = QueueSegments.queuePost(segmentPath.getFirst().segment, segmentList);
-
-        segmentPath.addAll(restOfSegmentsInPath);
+        // rest of path
+        ArrayList<SegmentWithTime> rest = QueueSegments.queuePost(first.segment, segmentList);
+        segmentPath.addAll(rest);
 
         return segmentPath;
     }

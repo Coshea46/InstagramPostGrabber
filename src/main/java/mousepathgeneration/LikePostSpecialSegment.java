@@ -31,9 +31,9 @@ public class LikePostSpecialSegment{
     private static double[] randomPointInLikeButton() {
         Random rand = new Random();
 
-        double maxDistance = 1;
-        double cx = 2;  // center of button x value
-        double cy = 3 ;  // center of button y value
+        double maxDistance = 3;
+        double cx = 989;  // center of button x value
+        double cy = 881 ;  // center of button y value
 
         double angle = rand.nextDouble() * 2 * Math.PI;           // random angle
         double radius = Math.sqrt(rand.nextDouble()) * maxDistance; // sqrt for uniform distribution in area
